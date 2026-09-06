@@ -1,0 +1,204 @@
+# Capture — Creality CR-10 Smart
+# Date: 2026-08-31
+# Firmware: 1.0.14 (Creality) / HW CRC2405V1.2 / Screen DWIN2021 UI22
+# How it was obtained: commands sent over a serial terminal, read-only, no motion.
+# This file is the profile's EVIDENCE. The typed profile (creality-cr10-smart.ts)
+# is derived from it. After a firmware update, capture again and diff.
+
+>>> M115
+FIRMWARE_NAME:1.0.14 SOURCE_CODE_URL:https://github.com/MarlinFirmware/Marlin HARDWARE_VERSION:CRC2405V1.2 SCREEN_VERSION:UI22 SCREEN_HW_VERSION:DWIN2021 PROTOCOL_VERSION:1.0 MACHINE_TYPE:CR-10 Smart EXTRUDER_COUNT:1 UUID:cede2a2f-41a2-4748-9b12-c55c62f367ff Cap:WIFI:0
+Cap:IS_PLR:0
+Cap:SERIAL_XON_XOFF:0
+Cap:BINARY_FILE_TRANSFER:0
+Cap:EEPROM:1
+Cap:VOLUMETRIC:1
+Cap:AUTOREPORT_TEMP:1
+Cap:PROGRESS:0
+Cap:PRINT_JOB:1
+Cap:AUTOLEVEL:1
+Cap:RUNOUT:1
+Cap:Z_PROBE:1
+Cap:LEVELING_DATA:1
+Cap:BUILD_PERCENT:0
+Cap:SOFTWARE_POWER:0
+Cap:TOGGLE_LIGHTS:0
+Cap:CASE_LIGHT_BRIGHTNESS:0
+Cap:EMERGENCY_PARSER:1
+Cap:PROMPT_SUPPORT:0
+Cap:SDCARD:1
+Cap:AUTOREPORT_SD_STATUS:0
+Cap:LONG_FILENAME:0
+Cap:THERMAL_PROTECTION:1
+Cap:MOTION_MODES:0
+Cap:ARCS:1
+Cap:BABYSTEPPING:1
+Cap:CHAMBER_TEMPERATURE:0
+
+>>> M503
+echo:  G21    ; Units in mm (mm)
+echo:  M149 C ; Units in Celsius
+echo:; Filament settings: Disabled
+echo:  M200 S0 D1.75
+echo:; Steps per unit:
+echo: M92 X80.00 Y80.00 Z400.00 E102.80
+echo:; Maximum feedrates (units/s):
+echo:  M203 X500.00 Y500.00 Z5.00 E25.00
+echo:; Maximum Acceleration (units/s2):
+echo:  M201 X500.00 Y500.00 Z100.00 E1000.00
+echo:; Acceleration (units/s2): P<print_accel> R<retract_accel> T<travel_accel>
+echo:  M204 P500.00 R1000.00 T500.00
+echo:; Advanced: B<min_segment_time_us> S<min_feedrate> T<min_travel_feedrate> X<max_x_jerk> Y<max_y_jerk> Z<max_z_jerk> E<max_e_jerk>
+echo:  M205 B20000.00 S0.00 T0.00 X8.00 Y8.00 Z0.40 E5.00
+echo:; Home offset:
+echo:  M206 X0.00 Y0.00 Z0.00
+echo:; Auto Bed Leveling:
+echo:  M420 S1 Z2.00
+echo:  G29 W I0 J0 Z0.16250
+echo:  G29 W I1 J0 Z0.06400
+echo:  G29 W I2 J0 Z-0.11700
+echo:  G29 W I3 J0 Z-0.11000
+echo:  G29 W I4 J0 Z-0.27000
+echo:  G29 W I0 J1 Z0.15550
+echo:  G29 W I1 J1 Z0.10000
+echo:  G29 W I2 J1 Z-0.04750
+echo:  G29 W I3 J1 Z-0.03200
+echo:  G29 W I4 J1 Z-0.13050
+echo:  G29 W I0 J2 Z0.05050
+echo:  G29 W I1 J2 Z0.03700
+echo:  G29 W I2 J2 Z-0.08150
+echo:  G29 W I3 J2 Z-0.01700
+echo:  G29 W I4 J2 Z-0.08650
+echo:  G29 W I0 J3 Z0.08250
+echo:  G29 W I1 J3 Z0.02500
+echo:  G29 W I2 J3 Z-0.10900
+echo:  G29 W I3 J3 Z-0.04950
+echo:  G29 W I4 J3 Z-0.08350
+echo:  G29 W I0 J4 Z0.00850
+echo:  G29 W I1 J4 Z-0.07900
+echo:  G29 W I2 J4 Z-0.24950
+echo:  G29 W I3 J4 Z-0.17200
+echo:  G29 W I4 J4 Z-0.16450
+echo:; Material heatup parameters:
+echo:  M145 S0 H200 B60 F255
+echo:  M145 S1 H240 B70 F255
+echo:; PID settings:
+echo:  M301 P12.66 I0.61 D65.93
+echo:  M304 P60.30 I4.56 D531.70
+echo:; Power-Loss Recovery:
+echo:  M413 S1
+echo:; Z-Probe Offset (mm):
+echo:  M851 X0 Y0 Z0.31
+echo:; Filament load/unload lengths:
+echo:  M603 L0.00 U100.00
+echo:; Filament runout sensor:
+echo:  M412 S1
+echo:; 1:cn 2:en 3:de 4:es 5:fr 6:it 7:pt 8:tr 9:it language change font:
+echo:  M414 S2
+echo:; 0:disable wifi 1:enable wifi WIFI Enable Flag:
+echo:  M194 S0
+
+>>> M211
+echo:Soft endstops: ON  Min:  X-2.00 Y-10.00 Z0.00   Max:  X305.00 Y305.00 Z405.00
+
+>>> M420 V1
+Bilinear Leveling Grid:
+      0      1      2      3      4
+ 0 +0.163 +0.064 -0.117 -0.110 -0.270
+ 1 +0.156 +0.100 -0.047 -0.032 -0.130
+ 2 +0.051 +0.037 -0.081 -0.017 -0.086
+ 3 +0.083 +0.025 -0.109 -0.049 -0.083
+ 4 +0.009 -0.079 -0.249 -0.172 -0.164
+Subdivided with CATMULL ROM Leveling Grid:
+        0        1        2        3        4        5        6        7        8        9       10       11       12
+ 0 +0.16250 +0.13272 +0.10295 +0.06400 +0.00282 -0.06754 -0.11700 -0.12241 -0.10692 -0.11000 -0.15096 -0.21048 -0.27000
+ 1 +0.16380 +0.13892 +0.11405 +0.07967 +0.02286 -0.04346 -0.09000 -0.09498 -0.08017 -0.08167 -0.11690 -0.16843 -0.21996
+ 2 +0.16509 +0.14512 +0.12515 +0.09533 +0.04290 -0.01938 -0.06300 -0.06754 -0.05342 -0.05333 -0.08284 -0.12638 -0.16992
+ 3 +0.15550 +0.14041 +0.12532 +0.10000 +0.05161 -0.00700 -0.04750 -0.05018 -0.03476 -0.03200 -0.05639 -0.09344 -0.13050
+ 4 +0.12269 +0.11355 +0.10442 +0.08445 +0.04022 -0.01485 -0.05141 -0.04912 -0.02832 -0.02057 -0.04076 -0.07400 -0.10724
+ 5 +0.07898 +0.07579 +0.07260 +0.05789 +0.01750 -0.03440 -0.06681 -0.05813 -0.02997 -0.01615 -0.03273 -0.06366 -0.09459
+ 6 +0.05050 +0.04989 +0.04928 +0.03700 -0.00150 -0.05167 -0.08150 -0.06859 -0.03535 -0.01700 -0.03024 -0.05837 -0.08650
+ 7 +0.05495 +0.05111 +0.04728 +0.03263 -0.00690 -0.05724 -0.08696 -0.07411 -0.04064 -0.02098 -0.03123 -0.05529 -0.07935
+ 8 +0.07461 +0.06420 +0.05378 +0.03393 -0.00859 -0.06054 -0.09170 -0.08107 -0.04966 -0.03024 -0.03775 -0.05725 -0.07676
+ 9 +0.08250 +0.06617 +0.04983 +0.02500 -0.02117 -0.07583 -0.10900 -0.10004 -0.06957 -0.04950 -0.05391 -0.06870 -0.08350
+10 +0.06569 +0.04566 +0.02563 -0.00285 -0.05314 -0.11188 -0.14746 -0.13851 -0.10640 -0.08367 -0.08428 -0.09428 -0.10428
+11 +0.03709 +0.01403 -0.00903 -0.04092 -0.09600 -0.15992 -0.19848 -0.18898 -0.15411 -0.12783 -0.12430 -0.12934 -0.13439
+12 +0.00850 -0.01759 -0.04368 -0.07900 -0.13887 -0.20796 -0.24950 -0.23944 -0.20183 -0.17200 -0.16431 -0.16441 -0.16450
+echo:Bed Leveling ON
+echo:Fade Height 2.00
+
+>>> M105
+ok T:23.98 /0.00 B:24.37 /0.00 @:0 B@:0 FAN0@:0
+
+
+# ==========================================================================
+# ROUND 2 — attempt to discover the index<->mm mapping
+# ==========================================================================
+
+>>> M111 S32
+echo:DEBUG:
+# ^ EMPTY flag list => DEBUG_LEVELING_FEATURE is not compiled in.
+#   G29 prints no probing coordinates. This route is discarded.
+
+>>> G28
+Taring probe   (x5)
+echo:Bed Leveling ON
+echo:Fade Height 2.00
+# ^ "Taring probe" = Marlin's PROBE_TARE feature => the probe is a LOAD CELL /
+#   strain gauge: the nozzle itself is the probe. Consistent with M851 X0 Y0
+#   (coaxial). Implies: the nozzle must be clean before probing, and the probe
+#   measures the same thing the paper does (real physical contact).
+
+>>> G29
+Taring probe   (x~150, one per touch)
+Bilinear Leveling Grid:
+      0      1      2      3      4
+ 0 +0.302 +0.164 -0.071 -0.077 -0.177
+ 1 +0.258 +0.188 +0.020 +0.040 -0.053
+ 2 +0.155 +0.125 -0.015 +0.038 -0.025
+ 3 +0.179 +0.111 -0.029 +0.011 -0.019
+ 4 +0.077 -0.029 -0.205 -0.124 -0.119
+echo:Settings Stored (736 bytes; crc 41223)
+# ^^^ CRITICAL: Creality's firmware AUTO-SAVES to EEPROM when G29 finishes.
+#     No M500 needed, and M501 does NOT restore the previous mesh.
+#     The original mesh (round 1) survives only in this file.
+
+# --- Round 1 vs round 2 comparison (new - old), probed cold (~24 C) ---
+# +0.139 +0.100 +0.046 +0.033 +0.093
+# +0.102 +0.088 +0.067 +0.072 +0.077
+# +0.104 +0.088 +0.066 +0.055 +0.061
+# +0.096 +0.086 +0.080 +0.060 +0.064
+# +0.068 +0.050 +0.044 +0.048 +0.045
+# Mean +0.073 mm, range +0.033 .. +0.139 => ~0.1 mm spread between runs.
+# The bed's SHAPE reproduces; the absolute offset does not. See PLAN.md 10.3.
+
+# ==========================================================================
+# ROUND 3 — RESOLVED: the firmware accepts G29 L/R/F/B
+# ==========================================================================
+
+>>> G28
+# The nozzle goes to the CENTRE of the bed and stays there (Z_SAFE_HOMING: with
+# a load-cell probe, Z homing happens at the centre).
+
+>>> G29 L100 R200 F100 B200
+# VERIFIED VISUALLY: probing confined to a small square at the centre of the
+# bed, and still 5x5.
+#
+# CONCLUSION:
+#   - Creality did NOT strip the L/R/F/B parsing. The probing bounds are
+#     controllable by command.
+#   - GRID_MAX_POINTS (5x5) is a compile-time constant and does NOT change.
+#   - => No need to discover the default bounds. The app DICTATES them.
+#
+# index -> mm MAPPING (plain arithmetic, no guessing):
+#   spacing_x = (R - L) / (cols - 1) = (R - L) / 4
+#   spacing_y = (B - F) / (rows - 1) = (B - F) / 4
+#   x(i) = L + i * spacing_x
+#   y(j) = F + j * spacing_y
+#
+# Choice for the profile: L20 R280 F20 B280 (20 mm margin)
+#   X, Y = 20, 85, 150, 215, 280
+
+>>> G29
+# Restores the default bounds and leaves the printer usable.
+# REQUIRED after any G29 with L/R/F/B.
+# ==========================================================================

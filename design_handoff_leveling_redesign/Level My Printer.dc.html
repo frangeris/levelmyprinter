@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Level My Printer</title>
+<link rel="stylesheet" href="_ds/broadsheet-8ac5464a-7530-469a-b31c-2f9c9ab9fd3c/styles.css">
+<script src="_ds/broadsheet-8ac5464a-7530-469a-b31c-2f9c9ab9fd3c/_ds_bundle.js"></script>
+<style>
+/* Dark ground: the Broadsheet ramps inverted end-for-end (step N takes step
+   1000-N), so every ramp reference in the page keeps its intent — light steps
+   stay the quiet fills, dark steps stay the loud ink — on a near-black sheet,
+   with the process inks pushed to full saturation. */
+:root {
+  color-scheme: dark;
+  --color-bg: #0c0c0d;
+  --color-surface: #1a1a1c;
+  --color-text: #fbfafa;
+  --color-divider: color-mix(in srgb, #fbfafa 18%, transparent);
+
+  --color-neutral-100: #0c0c0d;
+  --color-neutral-200: #1a1a1c;
+  --color-neutral-300: #38383b;
+  --color-neutral-400: #66666a;
+  --color-neutral-500: #8e8e93;
+  --color-neutral-600: #b4b4b8;
+  --color-neutral-700: #d8d8db;
+  --color-neutral-800: #ececee;
+  --color-neutral-900: #fbfafa;
+
+  --color-accent: #00b8f0;
+  --color-accent-100: #04202c;
+  --color-accent-200: #063a4e;
+  --color-accent-300: #086b8f;
+  --color-accent-400: #0092c2;
+  --color-accent-500: #00b8f0;
+  --color-accent-600: #22ccff;
+  --color-accent-700: #5fdcff;
+  --color-accent-800: #a6ecff;
+  --color-accent-900: #d9f7ff;
+
+  --color-accent-2: #ff0a6c;
+  --color-accent-2-100: #33021a;
+  --color-accent-2-200: #5c032e;
+  --color-accent-2-300: #94054a;
+  --color-accent-2-400: #d40862;
+  --color-accent-2-500: #ff0a6c;
+  --color-accent-2-600: #ff4d90;
+  --color-accent-2-700: #ff87b2;
+  --color-accent-2-800: #ffbcd3;
+  --color-accent-2-900: #ffe0ea;
+
+  /* One green outside the two process inks, at the same saturation as them:
+     captured points and the live connection. */
+  --color-ok: #00e07a;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.6);
+  --shadow-md: 0 3px 10px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.7);
+}
+body { margin: 0; overflow: hidden; background: var(--color-bg); color: var(--color-text); }
+.dialog-backdrop { background: rgb(0 0 0 / 0.75); }
+a { color: var(--color-accent-700); }
+a:hover { color: var(--color-accent-800); }
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;height:100vh">
+
+  <header style="flex-shrink:0;padding:var(--space-4) var(--space-8) var(--space-3)">
+    <div style="display:flex;align-items:center;gap:var(--space-4);white-space:nowrap">
+      <div style="display:flex;align-items:center;gap:var(--space-1);min-width:0">
+        <button onClick="{{ openDisconnect }}" aria-label="Connected — disconnect" title="Connected — click to disconnect" style="flex-shrink:0;width:14px;height:14px;padding:0;border:none;border-radius:50%;background:var(--color-ok);cursor:pointer"></button>
+        <select class="input" onChange="{{ noop }}" style="width:auto;font-family:var(--font-heading);font-weight:600;font-size:17px;min-height:34px;background:transparent;border-color:transparent;padding-left:2px">
+          <option>Creality CR-10 Smart</option>
+        </select>
+      </div>
+      <div class="text-muted" style="flex:1;display:flex;justify-content:center;flex-wrap:wrap;gap:2px var(--space-4);font-size:13px;font-variant-numeric:tabular-nums">
+      <span>Nozzle <b style="color:var(--color-text);font-weight:600">200.4°</b> / 200°</span>
+      <span>Bed <b style="color:var(--color-text);font-weight:600">60.1°</b> / 60°</span>
+      <span>X <b style="color:var(--color-text);font-weight:600">{{ headX }}</b></span>
+      <span>Y <b style="color:var(--color-text);font-weight:600">{{ headY }}</b></span>
+      <span>Z <b style="color:var(--color-text);font-weight:600">{{ headZ }}</b></span>
+      </div>
+      <button class="btn btn-secondary" onClick="{{ openConfirm }}" style="flex-shrink:0">Preheat</button>
+    </div>
+  </header>
+
+  <sc-if value="{{ showWarning }}" hint-placeholder-val="{{ false }}">
+    <div style="flex-shrink:0;display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-8);background:var(--color-accent-2-100)">
+      <span style="flex:1;font-size:14px;line-height:1.6;color:var(--color-accent-2-900)"><b style="font-weight:600">Quick mode.</b> Movement works, measurements are not trustworthy yet: the bed is cold and will move as it heats, and the grid has not been probed this session.</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showBusy }}" hint-placeholder-val="{{ false }}">
+    <div style="flex-shrink:0;display:flex;align-items:center;gap:var(--space-6);padding:var(--space-3) var(--space-8);background:var(--color-accent-100)">
+      <span style="font-size:14px;color:var(--color-accent-800);flex-shrink:0">Preheating to 200° / 60°…</span>
+      <div style="flex:1;max-width:520px;display:flex;flex-direction:column;gap:var(--space-1)">
+        <div style="display:flex;align-items:center;gap:var(--space-3);font-size:13px;font-variant-numeric:tabular-nums">
+          <span class="text-muted" style="width:52px;flex-shrink:0">Nozzle</span>
+          <div style="flex:1;height:2px;background:var(--color-neutral-300)"><div style="height:2px;background:var(--color-accent);width:71%"></div></div>
+          <span style="width:96px;text-align:right;flex-shrink:0">142.3° / 200°</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--space-3);font-size:13px;font-variant-numeric:tabular-nums">
+          <span class="text-muted" style="width:52px;flex-shrink:0">Bed</span>
+          <div style="flex:1;height:2px;background:var(--color-neutral-300)"><div style="height:2px;background:var(--color-text);width:100%"></div></div>
+          <span style="width:96px;text-align:right;flex-shrink:0">60.2° / 60°</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isWorkspace }}" hint-placeholder-val="{{ true }}">
+    <main style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,26vw,380px);gap:var(--space-8);padding:var(--space-2) var(--space-8) var(--space-6)">
+
+      <section style="min-height:0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-6)">
+        <div style="position:relative;height:100%;aspect-ratio:1;max-height:100%;max-width:100%">
+          <svg viewBox="0 0 300 300" role="img" aria-label="300 by 300 mm bed, front edge marked by its two mounting ears, with 25 leveling points" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+            <path d="M6 0 H294 A6 6 0 0 1 300 6 V294 A6 6 0 0 1 294 300 H272 V304 A6 6 0 0 1 266 310 H224 A6 6 0 0 1 218 304 V300 H82 V304 A6 6 0 0 1 76 310 H34 A6 6 0 0 1 28 304 V300 H6 A6 6 0 0 1 0 294 V6 A6 6 0 0 1 6 0 Z" fill="none" stroke="var(--color-neutral-400)" stroke-width="1"></path>
+            <g stroke="var(--color-neutral-300)" stroke-width="0.8">
+              <sc-for list="{{ gridLines }}" as="g" hint-placeholder-count="10">
+                <line x1="{{ g.x1 }}" y1="{{ g.y1 }}" x2="{{ g.x2 }}" y2="{{ g.y2 }}"></line>
+              </sc-for>
+            </g>
+            <sc-for list="{{ bedPoints }}" as="p" hint-placeholder-count="25">
+              <g onClick="{{ p.select }}" transform="{{ p.at }}" style="cursor:pointer">
+                <title>{{ p.title }}</title>
+                <circle r="{{ p.r }}" fill="{{ p.fill }}" stroke="{{ p.stroke }}" stroke-width="{{ p.sw }}"></circle>
+              </g>
+            </sc-for>
+          </svg>
+          <sc-for list="{{ bedPoints }}" as="p" hint-placeholder-count="25">
+            <span aria-hidden="true" style="position:absolute;left:{{ p.left }};top:{{ p.center }};transform:translate(-50%,-50%);font-size:11px;line-height:1;font-weight:600;pointer-events:none;color:var(--color-bg)">{{ p.tick }}</span>
+          </sc-for>
+          <sc-for list="{{ bedPoints }}" as="p" hint-placeholder-count="25">
+            <span style="position:absolute;left:{{ p.left }};top:{{ p.top }};transform:{{ p.tf }};font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap;color:{{ p.labelFill }};font-weight:{{ p.labelWeight }}">{{ p.label }}</span>
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;width:100%;max-width:100%;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-neutral-600)">
+          <span>X0 Y0</span>
+        </div>
+      </section>
+
+      <aside style="min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;padding-right:var(--space-2);scrollbar-gutter:stable">
+        <div style="flex:0 0 auto;display:flex;flex-direction:column">
+        <h6 style="margin:0;color:var(--color-neutral-600)">Point {{ pointNo }} of 25</h6>
+        <span class="text-muted" style="font-size:13px;font-variant-numeric:tabular-nums;margin-top:var(--space-1)">{{ coordsText }}</span>
+
+        <h6 style="margin:var(--space-4) 0 0;color:var(--color-neutral-600)">Z offset</h6>
+        <div style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-1)">
+          <span style="font-size:min(80px,7vw,10vh);font-weight:600;line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">{{ zText }}</span>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <button class="btn btn-secondary" onClick="{{ up }}" aria-label="Raise Z" style="width:38px;height:34px;padding:0">▲</button>
+            <button class="btn btn-secondary" onClick="{{ down }}" aria-label="Lower Z" style="width:38px;height:34px;padding:0">▼</button>
+          </div>
+        </div>
+
+        <h6 style="margin:var(--space-4) 0 0;color:var(--color-neutral-600)">Step</h6>
+        <div style="margin-top:var(--space-1)">
+          <div class="seg">
+            <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+              <label class="seg-opt" style="font-variant-numeric:tabular-nums">
+                <input type="radio" name="step" checked="{{ s.checked }}" onChange="{{ s.pick }}">{{ s.label }}
+              </label>
+            </sc-for>
+          </div>
+        </div>
+
+        </div>
+
+        <div style="flex-shrink:0;padding-top:var(--space-4)">
+          <div style="display:flex;gap:var(--space-2)">
+            <button class="btn btn-secondary" onClick="{{ prev }}" style="flex:1;white-space:nowrap">← Previous</button>
+            <button class="btn btn-secondary" onClick="{{ next }}" style="flex:1;white-space:nowrap">Next →</button>
+          </div>
+          <button class="btn btn-primary" onClick="{{ saveAction }}" style="width:100%;font-size:16px;padding:12px 24px;margin-top:var(--space-2)">{{ saveLabel }}</button>
+          <div class="text-muted" style="font-size:12px;margin-top:var(--space-2)">↑ ↓ nudge · ⏎ save · ← → point</div>
+          <button class="btn btn-ghost" onClick="{{ openRestart }}" style="margin-top:var(--space-2);padding-left:0;font-size:13px">Restart</button>
+        </div>
+
+        <div style="flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-4)">
+          <div style="flex-shrink:0;display:flex;align-items:baseline;gap:var(--space-2)">
+            <button onClick="{{ toggleTerminal }}" aria-expanded="{{ terminalOpen }}" style="display:flex;align-items:baseline;gap:7px;font:inherit;font-family:var(--font-heading);font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-600);background:none;border:none;padding:0;cursor:pointer">
+              <span style="font-size:9px;display:inline-block;transform:{{ termCaret }}">▼</span>Terminal
+            </button>
+            <button onClick="{{ openHelp }}" aria-label="Common commands" style="flex-shrink:0;font-family:var(--font-heading);font-weight:600;font-size:12px;line-height:1;width:20px;height:20px;padding:0;border:1px solid var(--color-divider);border-radius:50%;background:transparent;color:var(--color-accent-700);cursor:pointer">?</button>
+          </div>
+          <sc-if value="{{ terminalOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:80px;overflow-y:auto;margin-top:var(--space-2);font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11.5px;line-height:1.6">
+              <sc-for list="{{ log }}" as="l" hint-placeholder-count="12">
+                <div style="white-space:pre-wrap;word-break:break-word;color:{{ l.color }}">{{ l.text }}</div>
+              </sc-for>
+            </div>
+            <form onSubmit="{{ sendCommand }}" style="flex-shrink:0;margin-top:var(--space-2)">
+              <input class="input" value="{{ draft }}" onChange="{{ setDraft }}" placeholder="G-code command, then Enter" spellcheck="false" autocomplete="off" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">
+            </form>
+          </sc-if>
+        </div>
+      </aside>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{ showRestart }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" role="dialog" aria-modal="true">
+      <div class="dialog" style="width:min(420px,100%)">
+        <h3 class="dialog-title">Restart the pass?</h3>
+        <p class="dialog-body" style="margin:0">{{ restartBody }}</p>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeRestart }}">Cancel</button>
+          <button class="btn btn-primary" onClick="{{ reset }}">Restart</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showDisconnect }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" role="dialog" aria-modal="true">
+      <div class="dialog" style="width:min(420px,100%)">
+        <h3 class="dialog-title">Disconnect the printer?</h3>
+        <p class="dialog-body" style="margin:0">The captured points stay in this session, but the printer will stop moving until you connect again.</p>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeDisconnect }}">Cancel</button>
+          <button class="btn btn-primary" onClick="{{ closeDisconnect }}">Disconnect</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showHelp }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" role="dialog" aria-modal="true">
+      <div class="dialog" style="width:min(480px,100%)">
+        <h3 class="dialog-title">Common commands</h3>
+        <p class="dialog-body" style="margin:0">Read-only: they neither move the machine nor write to EEPROM. Click one to send it.</p>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ quickCommands }}" as="c" hint-placeholder-count="6">
+            <button onClick="{{ c.run }}" style="display:flex;align-items:baseline;gap:var(--space-3);text-align:left;font:inherit;background:transparent;border:none;border-bottom:1px solid var(--color-divider);padding:var(--space-2) 2px;cursor:pointer">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--color-accent-700);width:82px;flex-shrink:0">{{ c.label }}</span>
+              <span style="font-size:14px;color:var(--color-text)">{{ c.hint }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeHelp }}">Close</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showGate }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" role="dialog" aria-modal="true">
+      <div class="dialog">
+        <h3 class="dialog-title">Connect your printer</h3>
+        <p class="dialog-body" style="margin:0">Pick the model and connect over USB. The browser will ask which serial port to use.</p>
+        <div class="field">
+          <label>Printer</label>
+          <select class="input">
+            <option>Creality CR-10 Smart</option>
+          </select>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-primary" onClick="{{ closeOverlay }}">Connect</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showHome }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" role="dialog" aria-modal="true">
+      <div class="dialog">
+        <h3 class="dialog-title">Printer connected</h3>
+        <p class="dialog-body" style="margin:0">Before it can move to any point, <b style="font-weight:600">Creality CR-10 Smart</b> has to home. The head will travel to the origin and Z will find its reference.</p>
+        <p style="margin:0;padding:var(--space-2) var(--space-3);background:var(--color-neutral-100);border-radius:var(--radius-md);font-size:14px;line-height:1.6"><b style="font-weight:600">Clear the bed first.</b> On this printer the nozzle is the probe, so Z homes by touching down at the centre of the bed.</p>
+        <div class="dialog-actions">
+          <button class="btn btn-primary" onClick="{{ closeOverlay }}">Home</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showConfirm }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" role="dialog" aria-modal="true">
+      <div class="dialog" style="width:min(540px,100%)">
+        <h3 class="dialog-title">Preheat &amp; probe</h3>
+        <p class="dialog-body" style="margin:0">Heats to these temperatures, then probes the bed (G29) to pin the grid.</p>
+        <div style="display:flex;gap:var(--space-3)">
+          <div class="field" style="flex:1">
+            <label>Nozzle °C</label>
+            <input class="input" type="number" value="{{ nozzleTarget }}" onChange="{{ setNozzle }}" style="font-variant-numeric:tabular-nums">
+          </div>
+          <div class="field" style="flex:1">
+            <label>Bed °C</label>
+            <input class="input" type="number" value="{{ bedTarget }}" onChange="{{ setBed }}" style="font-variant-numeric:tabular-nums">
+          </div>
+        </div>
+        <!-- Parked: the G29 "pin the grid" option. It is what defines the 5×5 grid and
+             its 20–280 bounds, so M421 later writes into the right cells — needed once
+             per printer, not per session, and destructive if run after a manual pass
+             (it overwrites the mesh with its own probed values). Flip showProbeOption
+             to true in the logic class to bring it back. -->
+        <sc-if value="{{ showProbeOption }}" hint-placeholder-val="{{ false }}">
+          <label style="display:flex;gap:var(--space-2);align-items:flex-start;cursor:pointer">
+            <input type="checkbox" style="margin-top:4px;width:15px;height:15px;flex-shrink:0;accent-color:var(--color-accent)">
+            <span style="font-size:14px;line-height:1.6"><b style="font-weight:600">Pin the grid (G29)</b><br><span class="text-muted">Only needed the first time on this printer. Overwrites the stored mesh with its own probed values and saves it to EEPROM.</span></span>
+          </label>
+        </sc-if>
+        <p style="margin:0;padding:var(--space-2) var(--space-3);background:var(--color-neutral-100);border-radius:var(--radius-md);font-size:14px;line-height:1.6"><b style="font-weight:600">Clean the nozzle first</b> — on this printer it is the probe.</p>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" onClick="{{ closeOverlay }}">Cancel</button>
+          <button class="btn btn-primary" onClick="{{ runPrepare }}">Continue</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showReview }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" role="dialog" aria-modal="true">
+      <div class="dialog" style="width:min(640px,100%);height:min(86vh,720px);min-height:0">
+        <h3 class="dialog-title">Save to printer</h3>
+        <p class="dialog-body" style="margin:0">The 25 points will replace the current mesh, then be saved to EEPROM. {{ changedCount }} differ from what the printer holds now.</p>
+        <div style="flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-gutter:stable;padding-right:var(--space-1)">
+          <table class="table" style="font-variant-numeric:tabular-nums">
+            <thead>
+              <tr><th style="position:sticky;top:0;background:var(--color-surface)">Point</th><th style="position:sticky;top:0;text-align:right;background:var(--color-surface)">Current</th><th style="position:sticky;top:0;text-align:right;background:var(--color-surface)">New</th></tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ reviewRows }}" as="r" hint-placeholder-count="12">
+                <tr>
+                  <td>{{ r.label }}</td>
+                  <td style="text-align:right" class="text-muted">{{ r.current }}</td>
+                  <td style="text-align:right">{{ r.next }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <sc-if value="{{ showCommands }}" hint-placeholder-val="{{ false }}">
+          <pre style="flex-shrink:0;max-height:140px;overflow:auto;margin:0;padding:var(--space-2) var(--space-3);background:var(--color-neutral-100);border-radius:var(--radius-md);font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.6">{{ commandsText }}</pre>
+        </sc-if>
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap">
+          <button class="btn btn-ghost" onClick="{{ toggleCommands }}" style="padding-left:0">{{ commandsLabel }}</button>
+          <div style="flex:1;min-width:0"></div>
+          <button class="btn btn-secondary" onClick="{{ closeOverlay }}">Cancel</button>
+          <button class="btn btn-primary" onClick="{{ confirmWrite }}">Write 25 points</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showWritten }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop" role="dialog" aria-modal="true">
+      <div class="dialog" style="width:min(540px,100%)">
+        <h3 class="dialog-title" style="display:flex;align-items:baseline;gap:10px"><span style="color:var(--color-ok)">✓</span>Mesh written and verified</h3>
+        <p class="dialog-body" style="margin:0">All 25 points read back from EEPROM exactly as written.</p>
+        <p class="text-muted" style="margin:0;font-family:ui-monospace,Menlo,monospace;font-size:12px">M421 ×25 → M500 → M501 → M503</p>
+        <div class="dialog-actions">
+          <button class="btn btn-primary" onClick="{{ closeOverlay }}">Close</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;workspace&quot;,&quot;gate&quot;,&quot;home&quot;,&quot;busy&quot;,&quot;warning&quot;,&quot;confirm&quot;,&quot;review&quot;,&quot;written&quot;],&quot;default&quot;:&quot;workspace&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showBedValues&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const MESH_MIN = 20, SPACING = 65, BED = 300;
+const SEED = [-0.045,-0.020,0.005,0.030,0.055,0.060,0.035,0.010,-0.015,-0.040,-0.035,-0.010,0.000,0.020,0.045,0.050,0.025,0.005,-0.020,-0.045,-0.030,-0.005,0.015,0.035,0.060];
+
+const POINTS = (() => {
+  const out = [];
+  for (let j = 0; j < 5; j++) {
+    const reversed = j % 2 === 1;
+    for (let n = 0; n < 5; n++) {
+      const i = reversed ? 4 - n : n;
+      out.push({ i, j, mx: MESH_MIN + i * SPACING, my: MESH_MIN + j * SPACING });
+    }
+  }
+  return out;
+})();
+
+const QUICK = [
+  ['M115', 'Firmware and machine name'],
+  ['M503', 'Dump the whole configuration'],
+  ['M211', 'Software endstop limits'],
+  ['M114', 'Current position'],
+  ['M105', 'Nozzle and bed temperatures'],
+  ['M420 V1', 'Report the stored mesh'],
+];
+
+const signed = (n) => (n >= 0 ? '+' : '-') + Math.abs(n).toFixed(3);
+const now = () => {
+  const d = new Date();
+  return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+};
+
+class Component extends DCLogic {
+  state = {
+    z: POINTS.map((_, i) => (i < 7 ? SEED[i] : null)),
+    idx: 7,
+    zTarget: 0.05,
+    step: 0.05,
+    screen: this.props.screen ?? 'workspace',
+    showCommands: false,
+    terminalOpen: false,
+    showRestart: false,
+    showHelp: false,
+    showDisconnect: false,
+    nozzleTarget: 200,
+    bedTarget: 60,
+    draft: '',
+    log: [
+      ['22:14:03.118', 'out', '> G28'],
+      ['22:14:11.402', 'in', 'X:150.00 Y:150.00 Z:0.00 E:0.00'],
+      ['22:14:11.404', 'in', 'ok'],
+      ['22:14:11.560', 'out', '> M420 S0'],
+      ['22:14:11.612', 'in', 'ok'],
+      ['22:14:12.001', 'info', 'Printer prepared.'],
+      ['22:14:12.220', 'out', '> G0 X150 Y85 F3000'],
+      ['22:14:13.884', 'in', 'ok'],
+      ['22:14:13.901', 'out', '> G0 Z0.050 F300'],
+      ['22:14:14.310', 'in', 'ok'],
+      ['22:14:20.775', 'out', '> M114'],
+      ['22:14:20.840', 'in', 'X:150.00 Y:85.00 Z:0.05 E:0.00 Count A:60000 B:34000 C:20'],
+      ['22:14:20.842', 'in', 'ok'],
+    ],
+  };
+
+  componentDidMount() {
+    this.onKey = (e) => {
+      const el = e.target || {};
+      const tag = el.tagName || '';
+      const typing = tag === 'TEXTAREA' || tag === 'SELECT' ||
+        (tag === 'INPUT' && el.type !== 'radio' && el.type !== 'checkbox');
+      if (typing) return;
+      if (this.overlay()) return;
+      if (e.key === 'ArrowUp') { e.preventDefault(); this.nudge(1); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); this.nudge(-1); }
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (this.state.z.every((v) => v !== null)) this.setState({ screen: 'review' });
+        else this.capture();
+      }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); this.goTo(this.state.idx - 1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); this.goTo(this.state.idx + 1); }
+    };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); }
+
+  overlay() {
+    return this.state.showHelp || this.state.showDisconnect || this.state.showRestart ||
+      ['gate', 'home', 'confirm', 'review', 'written'].includes(this.state.screen);
+  }
+
+  nudge(dir) {
+    this.setState((s) => {
+      const snapped = Math.round((s.zTarget + dir * s.step) / s.step) * s.step;
+      return { zTarget: Math.min(1, Math.max(-1, Number(snapped.toFixed(4)))) };
+    });
+  }
+
+  goTo(i) {
+    if (i < 0 || i >= 25) return;
+    this.setState((s) => ({ idx: i, zTarget: s.z[i] ?? 0 }));
+  }
+
+  capture() {
+    this.setState((s) => {
+      const z = s.z.slice();
+      z[s.idx] = s.zTarget;
+      for (let off = 1; off <= 25; off++) {
+        const t = (s.idx + off) % 25;
+        if (z[t] === null) return { z, idx: t, zTarget: z[t] ?? 0 };
+      }
+      return { z };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const full = s.screen === 'review' || s.screen === 'written';
+    const zs = full ? s.z.map((v, i) => v ?? SEED[i]) : s.z;
+    const showValues = this.props.showBedValues ?? true;
+    const captured = zs.filter((v) => v !== null);
+    const cur = POINTS[s.idx];
+    const active = !full && captured.length < 25;
+
+    const gridLines = [];
+    for (let j = 0; j < 5; j++) {
+      const y = BED - (MESH_MIN + j * SPACING);
+      gridLines.push({ x1: MESH_MIN, y1: y, x2: 280, y2: y });
+    }
+    for (let i = 0; i < 5; i++) {
+      const x = MESH_MIN + i * SPACING;
+      gridLines.push({ x1: x, y1: BED - MESH_MIN, x2: x, y2: BED - 280 });
+    }
+
+    const bedPoints = POINTS.map((p, index) => {
+      const v = zs[index];
+      const isActive = active && index === s.idx;
+      const has = v !== null;
+      return {
+        at: `translate(${p.mx} ${BED - p.my})`,
+        left: `${(p.mx / BED) * 100}%`,
+        center: `${((BED - p.my) / BED) * 100}%`,
+        // Clearance measured in bed units, not in ems of the label: the dot is 7.5
+        // units, so 3.6% of the bed always clears it whatever the diagram scales to.
+        // The front row prints above its dot — below would land on the bed's front
+        // edge and its ears.
+        top: `${((BED - p.my) / BED) * 100 + (p.j === 0 ? -3.6 : 3.6)}%`,
+        tf: p.j === 0 ? 'translate(-50%,-100%)' : 'translate(-50%,0)',
+        r: isActive || has ? 7.5 : 5,
+        tick: has && !isActive ? '✓' : '',
+        fill: isActive ? 'var(--color-text)' : has ? 'var(--color-ok)' : 'var(--color-bg)',
+        stroke: isActive ? 'var(--color-text)' : has ? 'var(--color-ok)' : 'var(--color-neutral-400)',
+        sw: has || isActive ? 0 : 1.2,
+        label: showValues ? (isActive ? signed(s.zTarget) : has ? signed(v) : '') : '',
+        labelFill: isActive ? 'var(--color-text)' : has ? 'var(--color-ok)' : 'var(--color-neutral-700)',
+        labelWeight: isActive ? 600 : 400,
+        title: `I${p.i} J${p.j} · X${p.mx} Y${p.my}`,
+        select: () => this.goTo(index),
+      };
+    });
+
+    const reviewRows = POINTS.map((p, index) => {
+      const next = zs[index] ?? SEED[index];
+      const current = index % 7 === 3 ? null : next + ((index % 5) - 2) * 0.018;
+      const delta = current === null ? null : next - current;
+      const big = delta !== null && Math.abs(delta) >= 0.05;
+      return {
+        label: `I${p.i} J${p.j}`,
+        current: current === null ? '—' : signed(current),
+        next: signed(next),
+        delta: delta === null ? '—' : signed(delta),
+        deltaColor: big ? 'var(--color-accent-2-800)' : 'var(--color-neutral-700)',
+      };
+    });
+
+    const commands = [
+      ...POINTS.map((p, i) => `M421 I${p.i} J${p.j} Z${(zs[i] ?? SEED[i]).toFixed(3)}`),
+      'M500', 'M501', 'M503',
+    ];
+
+    return {
+      isWorkspace: true,
+      showGate: s.screen === 'gate',
+      showHome: s.screen === 'home',
+      showBusy: s.screen === 'busy',
+      showWarning: s.screen === 'warning',
+      showConfirm: s.screen === 'confirm',
+      showReview: s.screen === 'review',
+      showWritten: s.screen === 'written',
+
+      headX: cur.mx.toFixed(1),
+      headY: cur.my.toFixed(1),
+      headZ: s.zTarget.toFixed(2),
+
+      gridLines, bedPoints,
+
+      pointNo: Math.min(s.idx + 1, 25),
+      coordsText: `I${cur.i} J${cur.j} · X${cur.mx} Y${cur.my} · ${captured.length} captured`,
+      zText: s.zTarget.toFixed(3),
+
+      up: () => this.nudge(1),
+      down: () => this.nudge(-1),
+      capture: () => this.capture(),
+      // The last save fills the grid; the same button then carries the pass forward.
+      saveLabel: captured.length === 25 && !full ? 'Continue' : 'Save',
+      saveAction: captured.length === 25 && !full
+        ? () => this.setState({ screen: 'review' })
+        : () => this.capture(),
+      prev: () => this.goTo(s.idx - 1),
+      next: () => this.goTo(s.idx + 1),
+      reset: () => this.setState({ z: POINTS.map(() => null), idx: 0, zTarget: 0, screen: 'workspace', showRestart: false }),
+      showRestart: s.showRestart,
+      restartBody: captured.length === 0
+        ? 'Nothing has been captured yet — this just sends the head back to point 1.'
+        : `${captured.length} captured ${captured.length === 1 ? 'value' : 'values'} will be discarded and the pass starts again at point 1. Nothing has been written to the printer.`,
+      openRestart: () => this.setState({ showRestart: true }),
+      closeRestart: () => this.setState({ showRestart: false }),
+      allCaptured: captured.length === 25 && !full,
+      openReview: () => this.setState({ screen: 'review' }),
+      openConfirm: () => this.setState({ screen: 'confirm' }),
+      runPrepare: () => this.setState({ screen: 'busy' }),
+      // Parked — see the comment beside the G29 block in the template, and README.md.
+      showProbeOption: false,
+      nozzleTarget: s.nozzleTarget,
+      bedTarget: s.bedTarget,
+      setNozzle: (e) => this.setState({ nozzleTarget: e.target.value }),
+      setBed: (e) => this.setState({ bedTarget: e.target.value }),
+      confirmWrite: () => this.setState({ screen: 'written' }),
+      closeOverlay: () => this.setState({ screen: 'workspace' }),
+
+      steps: [0.01, 0.05, 0.1].map((v) => ({
+        label: String(v),
+        checked: v === s.step,
+        pick: (e) => {
+          if (e && e.target && e.target.blur) e.target.blur();
+          this.setState({ step: v });
+        },
+      })),
+
+      reviewRows,
+      changedCount: reviewRows.filter((r) => r.delta !== '—' && r.delta !== '+0.000').length,
+      showCommands: s.showCommands,
+      commandsLabel: `${s.showCommands ? 'Hide' : 'Show'} the ${commands.length} commands`,
+      commandsText: commands.join('\n'),
+      toggleCommands: () => this.setState((p) => ({ showCommands: !p.showCommands })),
+
+      log: s.log.map(([time, dir, text]) => ({
+        time, text, short: time.slice(0, 8),
+        color: dir === 'out' ? 'var(--color-accent-700)' : dir === 'info' ? 'var(--color-accent-2-800)' : 'var(--color-text)',
+      })),
+      clearLog: () => this.setState({ log: [] }),
+      draft: s.draft,
+      setDraft: (e) => this.setState({ draft: e.target.value }),
+      sendCommand: (e) => {
+        e.preventDefault();
+        const cmd = s.draft.trim();
+        if (!cmd) return;
+        this.setState((p) => ({ draft: '', log: [...p.log, [now(), 'out', '> ' + cmd], [now(), 'in', 'ok']] }));
+      },
+      quickCommands: QUICK.map(([label, hint]) => ({
+        label, hint,
+        run: () => this.setState((p) => ({
+          showHelp: false,
+          log: [...p.log, [now(), 'out', '> ' + label], [now(), 'in', 'ok']],
+        })),
+      })),
+      terminalOpen: s.terminalOpen,
+      termCaret: s.terminalOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+      toggleTerminal: () => this.setState((p) => ({ terminalOpen: !p.terminalOpen })),
+      showHelp: s.showHelp,
+      openHelp: () => this.setState({ showHelp: true }),
+      closeHelp: () => this.setState({ showHelp: false }),
+      showDisconnect: s.showDisconnect,
+      openDisconnect: () => this.setState({ showDisconnect: true }),
+      closeDisconnect: () => this.setState({ showDisconnect: false }),
+      noop: () => {},
+    };
+  }
+}
+
+</script>
+</body>
+</html>

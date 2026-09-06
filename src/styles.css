@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Broadsheet, dark ground. The system's ramps inverted end-for-end (step N
+     takes step 1000-N) so every reference keeps its intent on a near-black
+     sheet, with the process inks pushed to full saturation. */
+  --color-bg: #0c0c0d;
+  --color-surface: #1a1a1c;
+  --color-inset: #0c0c0d;
+  --color-ink: #fbfafa;
+  --color-divider: rgb(251 250 250 / 0.18);
+
+  --color-n-300: #38383b;
+  --color-n-400: #66666a;
+  --color-n-600: #b4b4b8;
+  --color-n-700: #d8d8db;
+
+  --color-accent: #00b8f0;
+  --color-accent-hover: #22ccff;
+  --color-accent-press: #5fdcff;
+  --color-accent-tint: #04202c;
+  --color-accent-ink: #a6ecff;
+
+  --color-warn-tint: #33021a;
+  --color-warn-ink: #ffe0ea;
+
+  /* Amber, for anything that says the measurements are not to be believed yet.
+     Magenta reads as a failure; this is a caution — the app is working, what it
+     produces is just not trustworthy. */
+  --color-caution-tint: #2e2205;
+  --color-caution-ink: #ffd97a;
+
+  /* One green outside the two process inks: captured and connected. */
+  --color-ok: #00e07a;
+
+  /* Nothing to download. `system-ui` is whatever the machine already uses for
+     its own interface — San Francisco, Segoe, Roboto — so it is installed by
+     definition, it renders at the first paint, and it needs no internet, which
+     matters for a tool that runs on a bench next to a printer. The rest of the
+     stack is only there for browsers that do not know the keyword. */
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* One size for every piece of text in the app. There were thirteen, none of
+     them chosen against the others, and the difference between 11.5 and 12 was
+     not a decision anyone made. Hierarchy comes from weight, colour and case. */
+  --text-base: 14px;
+  --text-base--line-height: 1.55;
+  /* Two deliberate exceptions: a dialog's own title, and the Z being tried,
+     which is the one number someone reads from across the room. */
+  --text-title: 22px;
+  --text-display: min(80px, 7vw, 10vh);
+
+  /* The whole scale is a multiple of five, which is what the old --s1..--s8
+     were. `p-2` is 10px, `p-8` is 40px. */
+  --spacing: 5px;
+
+  --radius-xs: 2px;
+}
+
+@layer base {
+  body {
+    overflow: hidden;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.55;
+  }
+
+  #root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  /* Focus is shown on keyboard use only — a pass is twenty-five clicks, and a
+     ring on each of them is noise. */
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: rgb(0 184 240 / 0.3);
+  }
+}
