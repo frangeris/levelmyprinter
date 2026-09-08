@@ -8,7 +8,7 @@ sure it took.
 No backend, nothing to install. Open the page in Chrome, plug in the printer,
 connect.
 
-> **[Open the app →](https://<your-user>.github.io/levelmyprinter/)**
+> **[Open the app →](https://frangeris.github.io/levelmyprinter/)**
 
 ---
 
